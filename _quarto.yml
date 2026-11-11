@@ -29,23 +29,57 @@ website:
   favicon: favicon-transparent.ico
   navbar:
     logo: assets/logo-transparent.png
-    left:
+    right:
+      - icon: github
+        href: https://github.com/NikoBiele/RayTraceHeatTransfer.jl
+        aria-label: RayTraceHeatTransfer.jl on GitHub
+  sidebar:
+    style: floating                  # always visible on wide screens, as on convinterp.org
+    collapse-level: 3                # sections unfolded down to the individual examples
+    contents:
       - href: index.qmd
         text: Home
       - href: papers.qmd
         text: Papers
       - href: workflow.qmd
         text: Workflow
-      - href: examples/index.qmd
-        text: Examples
+      - section: Examples
+        href: examples/index.qmd
+        contents:
+          - section: Participating media in 2D
+            contents:
+              - href: examples/example-01.qmd
+                text: "1 — Grey participating medium"
+              - href: examples/example-02.qmd
+                text: "2 — Spectral greenhouse atmosphere"
+              - href: examples/example-03.qmd
+                text: "3 — Line spectrum vs line-by-line"
+              - href: examples/example-04.qmd
+                text: "4 — Anisotropic scattering"
+              - href: examples/example-05.qmd
+                text: "5 — Circular enclosure from triangles"
+              - href: examples/example-06.qmd
+                text: "6 — Five-pointed star"
+          - section: Surfaces in 3D
+            contents:
+              - href: examples/example-07.qmd
+                text: "7 — 3D surface enclosure"
+              - href: examples/example-08.qmd
+                text: "8 — Triangulated icosphere"
+              - href: examples/example-09.qmd
+                text: "9 — Mixed triangles and quadrilaterals"
+              - href: examples/example-10.qmd
+                text: "10 — Non-convex L-shaped duct"
+          - section: Accuracy and scale
+            contents:
+              - href: examples/example-11.qmd
+                text: "11 — Convergence in rays and mesh"
+              - href: examples/example-12.qmd
+                text: "12 — A million elements"
       - href: about.qmd
         text: About
       - href: references.qmd
         text: References
-    right:
-      - icon: github
-        href: https://github.com/NikoBiele/RayTraceHeatTransfer.jl
-        aria-label: RayTraceHeatTransfer.jl on GitHub
 
 format:
   html:
