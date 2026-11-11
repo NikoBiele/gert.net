@@ -142,10 +142,10 @@ Hand-chosen bands remain available as `PlanckBands(λ_edges)`.
 ## Step 5: Ray trace, smooth and solve
 
 ```{julia}
+#| warning: false
 mesh(2*10^6; method = :exchange, verbose = false)
 # smooth the ray tracing result to enforce energy conservation and reciprocity
-# opt-in to pure Dykstra smoothing
-smooth!(mesh; k_dykstra = 1000, verbose = false)
+smooth!(mesh; verbose = false)
 solveEquilibrium!(mesh, mesh.F_smooth;
     max_iters = 10_000, convergence_tol = 1e-14, verbose = false)
 ```

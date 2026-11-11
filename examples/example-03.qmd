@@ -84,8 +84,9 @@ mesh.spectral_model = model;
 ## Step 4: Trace once, smooth, solve
 
 ```{julia}
+#| warning: false
 mesh(10^7; method = :pathlength, chunk_rays = 10^7, verbose = false)  # one chunk: paths kept, re-binnable via `exchangeFactors!(mesh)`
-smooth!(mesh; k_dykstra = 200, k_ap = 10^4, verbose = false)          # smoothing: 200 Dykstra rounds, ≤ 10⁴ alternating projections
+smooth!(mesh; verbose = false)                                        # pathlength input: alternating projections until converged
 solveEquilibrium!(mesh, mesh.F_smooth; max_iters = 20_000, convergence_tol = 1e-12, verbose = false)
 
 # The side walls disturb the columns next to them; the centre column of the wide
@@ -134,15 +135,52 @@ println("max |T − T_LBL| = ", round(maximum(abs.(T_pkg .- T_lbl)); digits = 2)
         "ψ − ψ_LBL = ", round(ψ_pkg - ψ_lbl; sigdigits = 2))
 ```
 
-Tightening the tolerance, against the line-by-line reference (ψ_LBL = 0.49718), at 10⁷ rays:
+```{julia}
+#| code-fold: true
+#| code-summary: "Code for the table"
+#| output: asis
+#| warning: false
+using Printf
 
-| tol  | bins | pieces | bound  | max ΔT | ψ − ψ_LBL |
-|------|-----:|-------:|-------:|-------:|----------:|
-| 1e-2 |   20 |   1881 | 3.7e-3 | 0.30 K |   +1.3e-4 |
-| 1e-3 |   31 |   3449 | 9.3e-4 | 0.05 K |   −4.4e-5 |
-| 1e-4 |  128 |  17165 | 9.9e-5 | 0.01 K |   −3.4e-6 |
+# One row of the table: adaptive bins at tolerance `tol`, F_raw deposited from the
+# recorded paths of the trace in Step 4 (no new trace), smoothed and solved as there,
+# and the centre column compared with the line-by-line reference.
+function tolerance_row(tol)
+    model_t = adaptiveSpectralBins(λ, κ; tol = tol, L_range = (1 / NX, 3.0), T_range = (T2, T1))
+    K_t = length(model_t.κ_ref)                                  # number of bins at this tolerance
+    face_t = PolyVolume2D{Float64}(verts, SVector(true, true, true, true), K_t, 1.0, 0.0)
+    face_t.kappa_g   = copy(model_t.κ_ref)                       # one absorption coefficient per bin
+    face_t.sigma_s_g = zeros(K_t)                                # no scattering
+    face_t.epsilon   = [fill(1.0, K_t) for _ in 1:4]             # black walls in every bin
+    face_t.T_in_w    = [T1, 0.0, T2, 0.0]                        # same boundary conditions as Step 3
+    face_t.q_in_w    = zeros(4)
+    face_t.T_in_g    = -1.0
+    face_t.q_in_g    = 0.0
+    mesh_t = RayTracingDomain2D([face_t], [(NX_H, NX)]; verbose = false)
+    mesh_t.spectral_model = model_t
+    mesh_t.path_store = mesh.path_store                          # the recorded paths of Step 4
+    exchangeFactors!(mesh_t; verbose = false)                    # F_raw for this tolerance's bins
+    smooth!(mesh_t; verbose = false)
+    solveEquilibrium!(mesh_t, mesh_t.F_smooth; max_iters = 20_000, convergence_tol = 1e-12, verbose = false)
+    cells = sort([c for c in mesh_t.fine_mesh[1] if abs(c.midPoint[1] - x_centre) < 1e-9 * W];
+                 by = c -> c.midPoint[2])                        # centre column, from the hot plate upwards
+    T_t = [c.T_g for c in cells]
+    psi_t = (cells[1].q_w[1] / cells[1].area[1]) / (LBL_σ * (T1^4 - T2^4))
+    return (tol = tol, bins = K_t, pieces = length(model_t.piece_bin), bound = model_t.achieved_error,
+            dT = maximum(abs.(T_t .- T_lbl)), dpsi = psi_t - ψ_lbl)
+end
 
-The error follows the tolerance: each tenfold tightening lowers the temperature error five- to sixfold, and the flux error falls with it. Ten times more rays changes none of these numbers by more than 0.01 K, so at 10⁷ rays the sampling noise is already below the binning error, and the tolerance is the setting that decides the accuracy. Tighten `tol` until the error is small enough; more rays only help once it stops improving.
+rows = [tolerance_row(tol) for tol in (1e-2, 1e-3, 1e-4)]
+println("Tightening the tolerance, against the line-by-line reference (ψ_LBL = ", @sprintf("%.5f", ψ_lbl), "), at 10⁷ rays:\n")
+println("| tol | bins | pieces | bound | max ΔT | ψ − ψ_LBL |")
+println("|------|-----:|-------:|-------:|-------:|----------:|")
+for r in rows
+    @printf("| 1e%d | %d | %d | %.1e | %.4f K | %+.1e |\n",
+            round(Int, log10(r.tol)), r.bins, r.pieces, r.bound, r.dT, r.dpsi)
+end
+```
+
+The error follows the tolerance: the temperature error falls roughly in proportion to `tol`, and the flux error falls with it. As long as the sampling noise of the trace stays below the binning error, the tolerance is the setting that decides the accuracy. Tighten `tol` until the error is small enough; once it stops improving, the sampling noise has taken over, and more rays are what helps.
 
 All rows come from the same recorded paths. The number of bins is fixed when the faces are built, so each tolerance gets a new mesh, which takes over the paths instead of tracing again:
 

@@ -126,7 +126,7 @@ max_dT     = Float64[]                        # largest temperature difference a
 for (n_azimuth, n_polar) in bins
     mesh.directional_model = AngularBins(n_azimuth, n_polar)   # change the angular resolution ...
     exchangeFactors!(mesh; verbose = false)                    # ... and re-bin the kept ray paths, no new trace
-    smooth!(mesh; k_ap = 50_000, verbose = false)              # finer bins need more smoothing iterations
+    smooth!(mesh; verbose = false)                             # finer bins take more iterations; smoothing runs until converged
     for g in gs
         T_now, ψ_now = solve_for(mesh, g)
         push!(flux_error[g], (ψ_now - ψ_ref[g]) / ψ_ref[g])    # relative flux error, with its sign
@@ -182,5 +182,5 @@ Notes on directional domains:
 
 - `phase` and `reflection` accept one descriptor, or a vector with one per spectral bin; `TabulatedScattering` and `TabulatedReflection` take a table at the domain's angular resolution, which is checked for conservation and detailed balance.
 - Spectral domains with a `directional_model` use a dense solver limited to 6000 unknowns (elements × direction bins) per spectral bin.
-- Smoothing the angular exchange factors takes more alternating-projection iterations as the bins are refined; raise `k_ap` for finer grids.
+- Smoothing the angular exchange factors takes more alternating-projection iterations as the bins are refined; `smooth!` runs them until they converge, so finer grids mainly cost time. With very few rays per direction bin the iterations can stall, which `smooth!` reports; more rays or fewer bins then help.
 - To combine `J` with the angular exchange factors, note that they carry the emission shares: the power incident in bin `b` is `G[b]' * (J[:, b] ./ S)` with `S = vec(sum(G[b], dims = 2))`. With `F` it is simply `F' * J`.

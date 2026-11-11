@@ -8,7 +8,7 @@ Every problem follows the same steps:
 
 1. **Mesh** — build the geometry and set boundary conditions.
 2. **Exchange factors** — quasi-Monte Carlo ray tracing (2D participating media, 3D surface enclosures) or analytical view factors (3D convex surface enclosures), producing exchange factor matrix `F_raw`.
-3. **Smooth** — for ray-traced exchange factors, `smooth!(domain)` projects `F_raw` onto the nearest matrix satisfying reciprocity and energy conservation, producing `F_smooth` and returning convergence diagnostics. Analytical view factors are already reciprocal to round-off and skip this step.
+3. **Smooth** — for ray-traced exchange factors, `smooth!(domain)` enforces reciprocity and energy conservation on `F_raw`, choosing per bin between alternating projections and Dykstra's projection, and returns `F_smooth` with convergence diagnostics. Analytical view factors are already reciprocal to round-off and skip this step.
 4. **Solve** — `solveEquilibrium!(domain, domain.F_smooth)`, or `domain.F_raw` for analytical view factors, yields the steady state.
 
 Step 3 is separate because it is a distinct computation with its own cost and diagnostics. Ray-traced exchange factors arrive violating reciprocity at the level of the sampling noise, and smoothing, a least-squares projection in the tradition of @LarsenHowell1986, restores it to round-off ([Example 10](examples/example-10.qmd)). Analytical view factors are exact: their `F_raw` is already reciprocal to working precision, so it is passed to the solver directly ([Examples 7–9](examples/example-07.qmd)). Both matrices remain available on a ray-traced domain, so `F_raw` can be inspected or exported, but `F_smooth` is what should be passed to the solver.

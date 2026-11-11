@@ -27,7 +27,7 @@ Ray emission is sampled from Sobol sequences [@Sobol1967; @JoeKuo2008], as provi
 
 ## Smoothing
 
-Ray-traced exchange factors are smoothed by projection onto reciprocity and energy conservation, using Dykstra's algorithm [@Dykstra1983]; least-squares smoothing of direct exchange areas goes back to @LarsenHowell1986.
+Ray-traced exchange factors are smoothed by projection onto reciprocity and energy conservation, with alternating projections or Dykstra's algorithm [@Dykstra1983]; least-squares smoothing of direct exchange areas goes back to @LarsenHowell1986.
 
 ## Physics and validation
 
